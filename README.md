@@ -11,7 +11,7 @@ This package provides a **stable ABI contract** that allows external developers 
 Plugins are shared libraries (`.so`, `.dll`) that implement this C API.  
 The server loads these libraries at runtime and communicates with them using this interface.
 It is expected that the plugin_execute_command is where most plugin time will be spent.
-For instruments consisting of lookup like tables for their commands,  this should implement a large if elif else tree to select the proper command to execute depending on the verb.
+For instruments consisting of lookup like tables for their commands,  this should implement a large if-elif-else tree to select the proper command to execute depending on the verb.
 
 ***
 
@@ -166,17 +166,6 @@ The server will reject incompatible versions.
 
 ***
 
-## ABI Stability Rules
-
-To maintain compatibility:
-
-* ❌ Do NOT reorder struct fields
-* ❌ Do NOT remove fields
-* ✅ Only add fields at the end
-* ✅ Keep types stable
-
-***
-
 ## Build Integration (CMake)
 
 ```cmake
@@ -188,23 +177,6 @@ target_link_libraries(my_plugin
   PRIVATE instrument-plugin-api::instrument-plugin-api
 )
 ```
-
-***
-
-## What This Repository Is (and Is Not)
-
-### ✅ This repo provides
-
-* The plugin interface header
-* Build integration (CMake/vcpkg)
-
-### ❌ This repo does NOT provide
-
-* Plugin loader
-* Server runtime
-* Data buffer system
-
-Those belong to the **instrument script server**.
 
 ***
 
