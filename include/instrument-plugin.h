@@ -195,7 +195,12 @@ typedef struct {
    * If true, data is stored externally and referenced by ID.
    */
   bool has_large_data;
-
+  /**
+   * @brief The allocated buffer id goes in here.
+   *
+   * This is the result of data_manager_create<_zero_copy_>buffer
+   * The rest of the worker process will manage the release of the buffer.
+   */
   char data_buffer_id[PLUGIN_MAX_STRING_LEN]; /**< Buffer identifier */
   uint64_t data_element_count;                /**< Number of elements */
 
