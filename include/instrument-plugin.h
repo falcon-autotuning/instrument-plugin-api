@@ -49,9 +49,16 @@ extern "C" {
 #define PLUGIN_MAX_PAYLOAD 4096
 
 /**
- * @brief Supported parameter value types.
+ * @brief Identifier for parameter value types (ABI-stable).
+ *
+ * @note Backed by uint8_t to ensure consistent size across compilers.
  */
-typedef enum {
+typedef uint8_t PluginParamType;
+
+/**
+ * @brief Supported parameter value type constants.
+ */
+enum {
   PARAM_TYPE_NONE = 0,     /**< No value */
   PARAM_TYPE_INT32,        /**< 32-bit signed integer */
   PARAM_TYPE_INT64,        /**< 64-bit signed integer */
@@ -64,7 +71,22 @@ typedef enum {
   PARAM_TYPE_BINARY,       /**< Arbitrary binary data */
   PARAM_TYPE_ARRAY_DOUBLE, /**< Array of double values */
   PARAM_TYPE_ARRAY_INT32   /**< Array of int32 values */
-} PluginParamType;
+};
+
+/**
+ * @brief Supported data types for buffers.
+ */
+typedef uint8_t ArrayType;
+
+enum {
+  INST_DATA_FLOAT32 = 0,
+  INST_DATA_FLOAT64,
+  INST_DATA_INT32,
+  INST_DATA_INT64,
+  INST_DATA_UINT32,
+  INST_DATA_UINT64,
+  INST_DATA_UINT8
+};
 
 /**
  * @brief Represents a typed parameter value.
@@ -178,13 +200,9 @@ typedef struct {
   uint64_t data_element_count;                /**< Number of elements */
 
   /**
-   * @brief Data type identifier (implementation-defined)
-   *
-   * Example:
-   * - 0 = float32
-   * - 1 = float64
+   * @brief Data type identifier (see instrument-data)
    */
-  uint8_t data_type;
+  ArrayType data_type;
 
 } PluginResponse;
 
