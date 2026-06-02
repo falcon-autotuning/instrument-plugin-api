@@ -4,11 +4,7 @@
   "description": "The API that the instrument-script-server uses to communicate with instruments implemented by users",
   "homepage": "https://github.com/falcon-autotuning/instrument-plugin-api",
   "dependencies": [
-    "uthash",
-    {
-      "name": "instrument-data",
-      "version>=": "1.1.5"
-    }
+    "uthash"
   ],
   "builtin-baseline": "e5a1490e1409d175932ef6014519e9ae149ddb7c"
 }
