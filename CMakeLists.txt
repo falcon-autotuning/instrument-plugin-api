@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 
 project(
   instrument-plugin-api
-  VERSION 1.0.3
+  VERSION 1.0.4
   DESCRIPTION "The API that the instrument-script-server uses to communicate with instruments implemented by users"
   HOMEPAGE_URL "https://github.com/falcon-autotuning/instrument-plugin-api"
   LANGUAGES C
