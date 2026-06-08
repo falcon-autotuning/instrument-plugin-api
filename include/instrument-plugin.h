@@ -15,7 +15,7 @@
 #define INSTRUMENT_PLUGIN_API __declspec(dllexport)
 #else
 /// Import symbols when consuming plugin
-#define INSTRUMENT_PLUGIN_API __declspec(dllimport)
+#define INSTRUMENT_PLUGIN_API
 #endif
 #else
 /// Default visibility for non-Windows platforms
