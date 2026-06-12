@@ -37,110 +37,77 @@ extern "C" {
  * Plugins must set PluginMetadata.api_version to this value.
  * The host will reject plugins with incompatible versions.
  */
-#define INSTRUMENT_PLUGIN_API_VERSION 1
+#define INSTRUMENT_PLUGIN_API_VERSION 2
 
 /// Maximum length for string fields (including null terminator)
 #define PLUGIN_MAX_STRING_LEN 128
-
-/// Maximum number of parameters per command
-#define PLUGIN_MAX_PARAMS 16
-
-/// Maximum payload size for text/binary responses
-#define PLUGIN_MAX_PAYLOAD 4096
 
 /**
  * @brief Identifier for parameter value types (ABI-stable).
  *
  * @note Backed by uint8_t to ensure consistent size across compilers.
  */
-typedef uint8_t PluginParamType;
+typedef uint8_t VariableType;
 
 /**
  * @brief Supported parameter value type constants.
  */
 enum {
-  PARAM_TYPE_NONE = 0,     /**< No value */
-  PARAM_TYPE_INT32,        /**< 32-bit signed integer */
-  PARAM_TYPE_INT64,        /**< 64-bit signed integer */
-  PARAM_TYPE_UINT32,       /**< 32-bit unsigned integer */
-  PARAM_TYPE_UINT64,       /**< 64-bit unsigned integer */
-  PARAM_TYPE_FLOAT,        /**< 32-bit float */
-  PARAM_TYPE_DOUBLE,       /**< 64-bit float */
-  PARAM_TYPE_BOOL,         /**< Boolean value */
-  PARAM_TYPE_STRING,       /**< Null-terminated string */
-  PARAM_TYPE_BINARY,       /**< Arbitrary binary data */
-  PARAM_TYPE_ARRAY_DOUBLE, /**< Array of double values */
-  PARAM_TYPE_ARRAY_INT32   /**< Array of int32 values */
+  PARAM_TYPE_NONE = 0, // No value
+  PARAM_TYPE_INT64,    // 64-bit signed integer
+  PARAM_TYPE_DOUBLE,   // 64-bit float
+  PARAM_TYPE_BOOL,     // Boolean value
+  PARAM_TYPE_STRING,   // Null-terminated string
+  PARAM_TYPE_BUFFER    // Identifier for externally managed buffer (stored as
+                       // str_val)
 };
 
 /**
- * @brief Supported data types for buffers.
- */
-typedef uint8_t ArrayType;
-
-enum {
-  INST_DATA_FLOAT32 = 0,
-  INST_DATA_FLOAT64,
-  INST_DATA_INT32,
-  INST_DATA_INT64,
-  INST_DATA_UINT32,
-  INST_DATA_UINT64,
-  INST_DATA_UINT8
-};
-
-/**
- * @brief Represents a typed parameter value.
+ * @brief Named and typed command parameter.
  *
  * The active field in the union is determined by @ref type.
  *
+ * The name field is determined by @ref name.
+ *
  * @note Ownership rules:
- * - For pointer-based types (binary, arrays), memory is owned by the caller.
- * - Data is only valid for the duration of the API call.
- * - Plugins must NOT free or retain these pointers.
+ * - Variable values are only for the duration of the API call * - Variable
+ * values are stored inline and copied by value
+ * - Plugins must NOT retain pointers to provided data
  */
 typedef struct {
-  PluginParamType type; /**< Type of the value */
-
+  VariableType type; // Runtime type of the value
+  char name[PLUGIN_MAX_STRING_LEN];
+  // Compile time types
   union {
-    int32_t i32_val;
     int64_t i64_val;
-    uint32_t u32_val;
-    uint64_t u64_val;
-    float f_val;
     double d_val;
     bool b_val;
-
-    /// Null-terminated string
     char str_val[PLUGIN_MAX_STRING_LEN];
-
-    /// Binary data buffer
-    struct {
-      uint8_t *data; /**< Pointer to data */
-      size_t size;   /**< Size in bytes */
-    } binary;
-
-    /// Array of doubles
-    struct {
-      double *data; /**< Pointer to data */
-      size_t size;  /**< Number of elements */
-    } array_double;
-
-    /// Array of int32
-    struct {
-      int32_t *data; /**< Pointer to data */
-      size_t size;   /**< Number of elements */
-    } array_int32;
-
   } value;
-} PluginParamValue;
+} Variable;
 
 /**
- * @brief Named command parameter.
+ * @brief Command sent from the host to the plugin.
+ *
+ * Parameters can be accessed using:
+ * - @ref param_storage_count
+ * - @ref param_storage_get
+ *
+ * @note
+ * - The params field is read-only for plugins
+ * - The underlying storage is owned by the host
+ *
+ * @section usage_example Typical Usage
+ *
+ * @code
+ * uint8_t count = param_storage_count(cmd->params);
+ * for (uint8_t i = 0; i < count; i++) {
+ *     const Variable *v = param_storage_get(cmd->params, i);
+ *     // process v
+ * }
+ * @endcode
  */
-typedef struct {
-  char name[PLUGIN_MAX_STRING_LEN]; /**< Parameter name */
-  PluginParamValue value;           /**< Parameter value */
-} PluginParam;
+typedef struct ParamStorage ParamStorage;
 
 /**
  * @brief Command sent from the host to the plugin.
@@ -148,81 +115,49 @@ typedef struct {
  * Represents a single operation requested by the system.
  */
 typedef struct {
-  char id[PLUGIN_MAX_STRING_LEN];              /**< Unique command ID */
-  char instrument_name[PLUGIN_MAX_STRING_LEN]; /**< Target instrument */
-  char verb[PLUGIN_MAX_STRING_LEN];            /**< Command/operation name */
-
-  PluginParam params[PLUGIN_MAX_PARAMS]; /**< Input parameters */
-  uint32_t param_count;                  /**< Number of valid parameters */
-
-  uint32_t timeout_ms;   /**< Requested timeout in milliseconds */
-  bool expects_response; /**< Whether a response is expected */
+  char id[PLUGIN_MAX_STRING_LEN]; // Unique ID
+  char command[PLUGIN_MAX_STRING_LEN];
+  const ParamStorage *params;
+  uint32_t timeout_ms; /**< Requested timeout in milliseconds */
 } PluginCommand;
 
 /**
- * @brief Response returned from plugin to host.
+ * @brief Response container populated by the plugin and returned to the host.
  *
- * The plugin must populate this structure in-place.
+ * The plugin appends output values to this container using:
+ * - @ref plugin_response_push
  *
  * @note Ownership:
- * - The structure is allocated by the caller.
- * - Plugins must NOT free it.
- * - All pointers inside must refer to valid memory during return.
+ * - The container is allocated and owned by the host
+ * - Plugins must NOT allocate or free this structure
+ * - All data is copied into the container via API calls
+ *
+ * @note Lifetime:
+ * - The container is valid only for the duration of the API call
+ * - Plugins must NOT retain pointers to data inside the container
+ *
+ * @section usage_example Typical Usage
+ *
+ * @code
+ * Variable out = {0};
+ * out.type = PARAM_TYPE_DOUBLE;
+ * out.value.d_val = 3.14159;
+ *
+ * plugin_response_push(resp, &out);
+ * @endcode
  */
-typedef struct {
-  char command_id[PLUGIN_MAX_STRING_LEN];      /**< ID of the command */
-  char instrument_name[PLUGIN_MAX_STRING_LEN]; /**< Instrument name */
-
-  bool success; /**< Whether command succeeded */
-
-  PluginParamValue return_value; /**< Structured return value */
-
-  /// Optional human-readable text response
-  char text_response[PLUGIN_MAX_PAYLOAD];
-
-  /// Optional binary response (inline)
-  uint8_t binary_response[PLUGIN_MAX_PAYLOAD];
-  uint32_t binary_response_size; /**< Bytes used in binary_response */
-
-  int32_t error_code; /**< Error code (if failure) */
-
-  /// Short error message (null-terminated)
-  char error_message[PLUGIN_MAX_STRING_LEN];
-
-  /**
-   * @brief Large data support (external buffer)
-   *
-   * If true, data is stored externally and referenced by ID.
-   */
-  bool has_large_data;
-  /**
-   * @brief The allocated buffer id goes in here.
-   *
-   * This is the result of data_manager_create<_zero_copy_>buffer
-   * The rest of the worker process will manage the release of the buffer.
-   */
-  char data_buffer_id[PLUGIN_MAX_STRING_LEN]; /**< Buffer identifier */
-  uint64_t data_element_count;                /**< Number of elements */
-
-  /**
-   * @brief Data type identifier (see instrument-data)
-   */
-  ArrayType data_type;
-
-} PluginResponse;
+typedef struct PluginResponse PluginResponse;
 
 /**
  * @brief Configuration passed during plugin initialization.
  */
 typedef struct {
-  char instrument_name[PLUGIN_MAX_STRING_LEN]; /**< Instrument name */
-
-  /// JSON string with connection parameters
-  char connection_json[PLUGIN_MAX_PAYLOAD];
-
-  /// JSON string describing API/command definitions
-  char api_definition_json[PLUGIN_MAX_PAYLOAD];
-
+  char instrument_name[PLUGIN_MAX_STRING_LEN];
+  char address[PLUGIN_MAX_STRING_LEN]; // Contains resource string, serial port,
+                                       // USB path, or custom address
+  uint32_t baud_rate; // Serial baud_rate if using serial connection
+  char custom[PLUGIN_MAX_STRING_LEN]; // Additional instrument specific fields
+                                      // outside of address and baud_rate
 } PluginConfig;
 
 /**
@@ -230,12 +165,11 @@ typedef struct {
  */
 typedef struct {
   uint32_t api_version; /**< Must match INSTRUMENT_PLUGIN_API_VERSION */
-
   char name[PLUGIN_MAX_STRING_LEN];          /**< Plugin name */
   char version[PLUGIN_MAX_STRING_LEN];       /**< Plugin version */
   char protocol_type[PLUGIN_MAX_STRING_LEN]; /**< Protocol identifier */
   char description[PLUGIN_MAX_STRING_LEN];   /**< Human-readable description */
-
+  char instrument_name[PLUGIN_MAX_STRING_LEN]; /**< Instrument name */
 } PluginMetadata;
 
 /* ============================================================
@@ -261,7 +195,7 @@ INSTRUMENT_PLUGIN_API PluginMetadata plugin_get_metadata(void);
  * @param config Configuration data (must not be modified)
  * @return 0 on success, non-zero on failure
  */
-INSTRUMENT_PLUGIN_API int32_t plugin_initialize(const PluginConfig *config);
+INSTRUMENT_PLUGIN_API uint8_t plugin_initialize(const PluginConfig *config);
 
 /**
  * @brief Execute a command.
@@ -274,10 +208,10 @@ INSTRUMENT_PLUGIN_API int32_t plugin_initialize(const PluginConfig *config);
  * @return 0 on success, non-zero on failure
  *
  * @note
- * - Must set resp->success
- * - Must copy command_id and instrument_name into response
+ * - The plugin must populate the response using plugin_response_push()
+ * - The response container is owned by the host and must not be freed
  */
-INSTRUMENT_PLUGIN_API int32_t plugin_execute_command(const PluginCommand *cmd,
+INSTRUMENT_PLUGIN_API uint8_t plugin_execute_command(const PluginCommand *cmd,
                                                      PluginResponse *resp);
 
 /**
