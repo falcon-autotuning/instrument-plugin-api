@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 
 project(
   instrument-plugin-api
-  VERSION 2.0.0
+  VERSION 2.0.1
   DESCRIPTION "API for instrument plugin communication"
   HOMEPAGE_URL "https://github.com/falcon-autotuning/instrument-plugin-api"
   LANGUAGES C

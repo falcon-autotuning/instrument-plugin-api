@@ -169,7 +169,6 @@ typedef struct {
   char version[PLUGIN_MAX_STRING_LEN];       /**< Plugin version */
   char protocol_type[PLUGIN_MAX_STRING_LEN]; /**< Protocol identifier */
   char description[PLUGIN_MAX_STRING_LEN];   /**< Human-readable description */
-  char instrument_name[PLUGIN_MAX_STRING_LEN]; /**< Instrument name */
 } PluginMetadata;
 
 /* ============================================================
@@ -191,6 +190,10 @@ INSTRUMENT_PLUGIN_API PluginMetadata plugin_get_metadata(void);
  * @brief Initialize the plugin.
  *
  * Called once after loading.
+ *
+ * @note
+ *  You should save this instrument_name as a global variable in the plugin
+ * since it won't be sent again
  *
  * @param config Configuration data (must not be modified)
  * @return 0 on success, non-zero on failure
