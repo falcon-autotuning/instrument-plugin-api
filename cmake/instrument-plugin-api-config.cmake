@@ -12,30 +12,28 @@ function(add_instrument_plugin TARGET_NAME)
     message(FATAL_ERROR "add_instrument_plugin: SOURCES argument is required")
   endif()
 
-  # Create a MODULE library (dlopen/LoadLibrary)
+  # Create plugin module
   add_library(${TARGET_NAME} MODULE ${PLUGIN_SOURCES})
 
-  # Ensure no "lib" prefix
   set_target_properties(${TARGET_NAME}
     PROPERTIES
       PREFIX ""
       POSITION_INDEPENDENT_CODE ON
   )
 
-  # Include directories
+  # Include user-provided includes
   target_include_directories(${TARGET_NAME}
     PRIVATE
       ${PLUGIN_INCLUDE_DIRS}
   )
 
-  # Link plugin API
   target_link_libraries(${TARGET_NAME}
     PRIVATE
-      instrument-plugin-api::instrument-plugin-api
+      instrument-plugin-api::plugin
       ${PLUGIN_LINK_LIBRARIES}
   )
 
-  # Ensure export macro is set correctly for Windows
+  # Windows export macro
   target_compile_definitions(${TARGET_NAME}
     PRIVATE INSTRUMENT_PLUGIN_BUILD
   )

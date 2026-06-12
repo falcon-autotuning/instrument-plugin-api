@@ -1,6 +1,5 @@
 #include "plugin-host.h"
-#include "internal_storage.h"
-#include "internal_types.h"
+#include "internal-storage.h"
 
 DEFINE_STORAGE_CREATE_WITH_CAP(ParamStorage, param_storage, Variable)
 DEFINE_STORAGE_CREATE(ParamStorage, param_storage, Variable)

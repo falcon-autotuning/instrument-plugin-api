@@ -114,8 +114,8 @@ INSTRUMENT_PLUGIN_API void param_storage_free(ParamStorage *ps);
  * - Copies the value
  * - Expands storage automatically if needed
  */
-INSTRUMENT_PLUGIN_API void param_storage_push(ParamStorage *ps,
-                                              const Variable *var);
+INSTRUMENT_PLUGIN_API uint8_t param_storage_push(ParamStorage *ps,
+                                                 const Variable *var);
 
 /* ============================================================
  * PluginResponse (plugin → host)

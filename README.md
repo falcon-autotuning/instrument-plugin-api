@@ -4,65 +4,54 @@ C99 interface for writing instrument plugins for the Instrument Script Server.
 
 This package provides a **stable ABI contract** that allows external developers to implement instrument drivers as dynamically loaded plugins.
 
-***
+---
 
 ## Overview
 
 Plugins are shared libraries (`.so`, `.dll`) that implement this C API.  
-The server loads these libraries at runtime and communicates with them using this interface.
-It is expected that the plugin_execute_command is where most plugin time will be spent.
-For instruments consisting of lookup like tables for their commands,  this should implement a large if-elif-else tree to select the proper command to execute depending on the verb.
+The host (Instrument Script Server) loads these libraries at runtime and communicates with them using this interface.
 
-***
+Most plugin logic will live inside:
+
+```c
+plugin_execute_command(...)
+````
+
+This function should dispatch commands (e.g., via switch/if chains or lookup tables) and perform instrument I/O.
+
+---
 
 ## Getting Started
 
-### 1. Include the API
+Include headers
 
 ```c
 #include <instrument-plugin-api/instrument_plugin.h>
+#include <instrument-plugin-api/plugin-api.h>
 ```
 
-***
+> Plugins should **NOT include `plugin-host.h`**
 
-### 2. Implement required functions
-
-Every plugin **must implement**:
+Implement required functions
 
 ```c
 PluginMetadata plugin_get_metadata(void);
 
-int32_t plugin_initialize(const PluginConfig *config);
+uint8_t plugin_initialize(const PluginConfig *config);
 
-int32_t plugin_execute_command(const PluginCommand *cmd,
+uint8_t plugin_execute_command(const PluginCommand *cmd,
                                PluginResponse *resp);
 
 void plugin_shutdown(void);
 ```
 
-***
-
-### 3. Build as a shared library
-
-#### Linux
-
-```bash
-gcc -shared -fPIC plugin.c -o my_plugin.so
-```
-
-#### Windows
-
-```bat
-clang-cl /LD plugin.c /Fe:my_plugin.dll
-```
-
-***
+---
 
 ## Minimal Example
 
 ```c
 #include <instrument-plugin-api/instrument_plugin.h>
-#include <string.h>
+#include <instrument-plugin-api/plugin-api.h>
 
 PluginMetadata plugin_get_metadata(void) {
   PluginMetadata meta = {0};
@@ -74,119 +63,116 @@ PluginMetadata plugin_get_metadata(void) {
   return meta;
 }
 
-int32_t plugin_initialize(const PluginConfig *config) {
+uint8_t plugin_initialize(const PluginConfig *config) {
   (void)config;
   return 0;
 }
 
-int32_t plugin_execute_command(const PluginCommand *cmd,
+uint8_t plugin_execute_command(const PluginCommand *cmd,
                                PluginResponse *resp) {
-  strncpy(resp->command_id, cmd->id, PLUGIN_MAX_STRING_LEN - 1);
-  strncpy(resp->instrument_name, cmd->instrument_name,
-          PLUGIN_MAX_STRING_LEN - 1);
 
-  resp->success = true;
-  strncpy(resp->text_response, "OK", PLUGIN_MAX_PAYLOAD - 1);
+  uint8_t count = param_storage_count(cmd->params);
+
+  for (uint8_t i = 0; i < count; i++) {
+    const Variable *v = param_storage_get(cmd->params, i);
+    // process parameters
+  }
+
+  Variable out = {0};
+  out.type = PARAM_TYPE_INT64;
+  out.value.i64_val = 42;
+
+  plugin_response_push(resp, &out);
+
   return 0;
 }
 
 void plugin_shutdown(void) {}
 ```
 
-***
+---
 
 ## Data Model
 
-### Command
-
-The server sends commands via:
+### Command (host → plugin)
 
 ```c
 PluginCommand
 ```
 
-Includes:
+Contains:
 
-* command ID
-* verb (operation)
-* parameters
+* command identifier
+* command/verb string
+* parameter storage (`ParamStorage`)
 * timeout
-* response expectation
 
-***
+Accessing parameters
 
-### Response
+```c
+uint8_t count = param_storage_count(cmd->params);
 
-Plugins return results via:
+for (uint8_t i = 0; i < count; i++) {
+    const Variable *v = param_storage_get(cmd->params, i);
+}
+```
+
+---
+
+### Response (plugin → host)
 
 ```c
 PluginResponse
 ```
 
+Plugins populate responses using:
+
+```c
+plugin_response_push(resp, &value);
+```
+
 Supports:
 
-* success/failure
-* structured return value
-* text response
-* binary data
-* large data via buffer ID
+* multiple return values
+* typed values (`Variable`)
 
-***
+---
 
-## Memory & Ownership Rules (Important)
+## Host API (advanced usage)
 
-* All structs are **owned by the caller**
-* Do **not store pointers** from `PluginCommand`
-* Do **not free anything passed into your plugin**
-* Fill `PluginResponse` in-place
+The host constructs commands using `plugin-host.h`.
 
-### For pointer-based parameter types
-
-* Memory is owned by the caller
-* Valid only for the duration of the call
-* Must not be freed or retained
-
-***
-
-## Versioning
-
-The API version is defined as:
+Example:
 
 ```c
-#define INSTRUMENT_PLUGIN_API_VERSION 1
+ParamStorage *ps = param_storage_create_with_capacity(2);
+
+Variable v = {0};
+v.type = PARAM_TYPE_INT64;
+v.value.i64_val = 10;
+
+param_storage_push(ps, &v);
 ```
 
-Plugins must:
+> Plugins should never use this API.
 
-```c
-meta.api_version = INSTRUMENT_PLUGIN_API_VERSION;
-```
+---
 
-The server will reject incompatible versions.
+## Memory & Ownership Rules
 
-***
+* All storage is owned by the host
+* Plugins must NOT allocate or free storage containers
+* Plugins must NOT retain pointers to returned values
 
-## Build Integration (CMake)
-
-```cmake
-find_package(instrument-plugin-api CONFIG REQUIRED)
-
-add_library(my_plugin MODULE plugin.c)
-
-target_link_libraries(my_plugin
-  PRIVATE instrument-plugin-api::instrument-plugin-api
-)
-```
-
-***
+---
 
 ## Related Projects
 
-* Instrument Script Server (host application)
-* Plugin template repository (recommended starting point)
+* [Instrument Script Server](https://github.com/falcon-autotuning/instrument-script-server) (host application)
+* [Instrument SDK](https://github.com/falcon-autotuning/instrument-sdk) (plugin template repository)
 
-***
+---
 
 ## License
 
-MPLv2
+See [LICENSE](LICENSE) for details.
