@@ -117,7 +117,7 @@ typedef struct ParamStorage ParamStorage;
 typedef struct {
   char id[PLUGIN_MAX_STRING_LEN]; // Unique ID
   char command[PLUGIN_MAX_STRING_LEN];
-  const ParamStorage *params;
+  ParamStorage *params;
   uint32_t timeout_ms; /**< Requested timeout in milliseconds */
 } PluginCommand;
 
