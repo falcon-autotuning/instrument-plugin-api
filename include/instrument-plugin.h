@@ -119,6 +119,7 @@ typedef struct {
   char command[PLUGIN_MAX_STRING_LEN];
   ParamStorage *params;
   uint32_t timeout_ms; /**< Requested timeout in milliseconds */
+  bool is_query;       /**< True if the command is a query (read and write) */
 } PluginCommand;
 
 /**
