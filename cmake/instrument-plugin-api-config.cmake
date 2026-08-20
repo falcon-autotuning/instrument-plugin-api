@@ -29,7 +29,7 @@ function(add_instrument_plugin TARGET_NAME)
 
   target_link_libraries(${TARGET_NAME}
     PRIVATE
-      instrument-plugin-api::instrument-plugin-api-plugin
+      instrument-plugin-api::plugin
       ${PLUGIN_LINK_LIBRARIES}
   )
 

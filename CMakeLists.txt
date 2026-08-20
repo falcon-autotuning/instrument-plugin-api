@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 
 project(
   instrument-plugin-api
-  VERSION 2.0.3
+  VERSION 2.0.5
   DESCRIPTION "API for instrument plugin communication"
   HOMEPAGE_URL "https://github.com/falcon-autotuning/instrument-plugin-api"
   LANGUAGES C
@@ -44,6 +44,12 @@ endif()
 
 add_library(instrument-plugin-api-core INTERFACE)
 
+set_target_properties(
+  instrument-plugin-api-core
+  PROPERTIES
+    EXPORT_NAME core
+)
+
 target_include_directories(instrument-plugin-api-core
   INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -72,8 +78,11 @@ if(INSTRUMENT_PLUGIN_ENABLE_PLUGIN)
     PRIVATE INSTRUMENT_PLUGIN_BUILD
   )
 
-  set_target_properties(instrument-plugin-api-plugin
-    PROPERTIES POSITION_INDEPENDENT_CODE ON
+  set_target_properties(
+    instrument-plugin-api-plugin
+    PROPERTIES
+      POSITION_INDEPENDENT_CODE ON
+      EXPORT_NAME plugin
   )
 
   add_library(instrument-plugin-api::plugin ALIAS instrument-plugin-api-plugin)
@@ -100,8 +109,11 @@ if(INSTRUMENT_PLUGIN_ENABLE_HOST)
     PRIVATE INSTRUMENT_PLUGIN_BUILD
   )
 
-  set_target_properties(instrument-plugin-api-host
-    PROPERTIES POSITION_INDEPENDENT_CODE ON
+  set_target_properties(
+    instrument-plugin-api-host
+    PROPERTIES
+      POSITION_INDEPENDENT_CODE ON
+      EXPORT_NAME
   )
 
   add_library(instrument-plugin-api::host ALIAS instrument-plugin-api-host)
