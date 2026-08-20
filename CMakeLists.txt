@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 
 project(
   instrument-plugin-api
-  VERSION 2.0.5
+  VERSION 2.0.6
   DESCRIPTION "API for instrument plugin communication"
   HOMEPAGE_URL "https://github.com/falcon-autotuning/instrument-plugin-api"
   LANGUAGES C
@@ -113,7 +113,7 @@ if(INSTRUMENT_PLUGIN_ENABLE_HOST)
     instrument-plugin-api-host
     PROPERTIES
       POSITION_INDEPENDENT_CODE ON
-      EXPORT_NAME
+      EXPORT_NAME host
   )
 
   add_library(instrument-plugin-api::host ALIAS instrument-plugin-api-host)
