@@ -42,6 +42,9 @@ extern "C" {
 /// Maximum length for string fields (including null terminator)
 #define PLUGIN_MAX_STRING_LEN 128
 
+/// Maximum number of startup commands
+#define STARTUP_COMMANDS 10
+
 /**
  * @brief Identifier for parameter value types (ABI-stable).
  *
@@ -156,9 +159,13 @@ typedef struct {
   char instrument_name[PLUGIN_MAX_STRING_LEN];
   char address[PLUGIN_MAX_STRING_LEN]; // Contains resource string, serial port,
                                        // USB path, or custom address
-  uint32_t baud_rate; // Serial baud_rate if using serial connection
+  uint32_t baud_rate;     // Serial baud_rate if using serial connection
+  uint32_t startup_delay; // startup_delay for the instrument in milliseconds
   char custom[PLUGIN_MAX_STRING_LEN]; // Additional instrument specific fields
                                       // outside of address and baud_rate
+  char init_commands[STARTUP_COMMANDS]
+                    [PLUGIN_MAX_STRING_LEN] // Holds the optional init_commands
+                                            // for the instrument
 } PluginConfig;
 
 /**

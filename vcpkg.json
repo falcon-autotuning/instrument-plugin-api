@@ -1,10 +1,10 @@
 {
   "name": "instrument-plugin-api",
-  "version": "2.0.6",
+  "version": "2.0.7",
   "description": "The API that the instrument-script-server uses to communicate with instruments implemented by users",
   "homepage": "https://github.com/falcon-autotuning/instrument-plugin-api",
   "dependencies": [
     "cmocka"
   ],
-  "builtin-baseline": "e5a1490e1409d175932ef6014519e9ae149ddb7c"
+  "builtin-baseline": "9942fb5f996ea431c5ed8fb8d2a53f31d08df62e"
 }
