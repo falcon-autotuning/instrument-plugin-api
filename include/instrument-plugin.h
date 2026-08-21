@@ -164,8 +164,9 @@ typedef struct {
   char custom[PLUGIN_MAX_STRING_LEN]; // Additional instrument specific fields
                                       // outside of address and baud_rate
   char init_commands[STARTUP_COMMANDS]
-                    [PLUGIN_MAX_STRING_LEN] // Holds the optional init_commands
-                                            // for the instrument
+                    [PLUGIN_MAX_STRING_LEN]; // Holds the optional init_commands
+                                             // for the instrument the last
+                                             // character should always be \0
 } PluginConfig;
 
 /**
